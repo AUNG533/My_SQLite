@@ -24,13 +24,9 @@ class DBProvider {
         version: 1, // รุ่นของฐานข้อมูล
         // ฟังก์ชั่นที่จะทำงานก่อนที่จะสร้างฐานข้อมูล
         onCreate: (Database db, int version) async {
-          String sql = "CREATE TABLE $TABLE_PRODUCT ("
-              "$COLUMN_ID INTEGER PRIMARY KEY, "
-              "$COLUMN_NAME TEXT, "
-              "$COLUMN_PRICE INTEGER"
-              "$COLUMN_STOCK REAL, "
-              ")";
-          await db.execute(sql); // สร้างฐานข้อมูล
+          // String sql = "CREATE TABLE $TABLE_PRODUCT (""$COLUMN_ID INTEGER PRIMARY KEY,""$COLUMN_NAME TEXT,""$COLUMN_PRICE INTEGER,""$COLUMN_STOCK REAL,"")";
+          await db.execute('CREATE TABLE $TABLE_PRODUCT ($COLUMN_ID INTEGER PRIMARY KEY, $COLUMN_NAME TEXT, $COLUMN_PRICE INTEGER, $COLUMN_STOCK REAL)');
+           // สร้างฐานข้อมูล
         },
         // ฟังก์ชั่นที่จะทำงานก่อนที่จะอัพเดทฐานข้อมูล
         onUpgrade: (Database db, int oldVersion, int newVersion) {
@@ -47,8 +43,12 @@ class DBProvider {
     }
   }
 
+  Future closeDB() async {
+    await database.close(); // ปิดฐานข้อมูล
+  }
+
   // get all products
-  Future<List<Product>?> getAllProduct() async {
+  Future<List<Product>> getAllProduct() async {
     final List<Map<String, dynamic>> maps = await database.query(
       TABLE_PRODUCT,
       columns: [COLUMN_ID, COLUMN_NAME, COLUMN_PRICE, COLUMN_STOCK],
@@ -78,7 +78,7 @@ class DBProvider {
   }
 
   // insert product
-  Future<Product?> insertProduct(Product product) async {
+  Future<Product> insertProduct(Product product) async {
     // เพิ่มข้อมูลลงฐานข้อมูล
     product.id = await database.insert(TABLE_PRODUCT, product.toMap());  // เพิ่มข้อมูลลงฐานข้อมูล
     // product.id = await database.rawInsert("INSERT Into......");
@@ -107,6 +107,6 @@ class DBProvider {
   // delete all product
   Future<int> deleteAllProduct() async {
     String sql = "DELETE FROM $TABLE_PRODUCT"; // ลบข้อมูลทั้งหมดจากตาราง
-    return await database.rawDelete(sql); 
+    return await database.rawDelete(sql);
   }
 }
