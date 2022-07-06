@@ -9,8 +9,10 @@ class DBProvider {
   Future<bool> initDB() async {
     try {
       const String databaseName = "MYPOS.db"; // ชื่อฐานข้อมูล
-      final String databasePath = await getDatabasesPath(); // ที่อยู่ของฐานข้อมูล
-      final String path = join(databasePath, databaseName); // ตัดสินค้าออกจากฐานข้อมูล
+      final String databasePath =
+          await getDatabasesPath(); // ที่อยู่ของฐานข้อมูล
+      final String path =
+          join(databasePath, databaseName); // ตัดสินค้าออกจากฐานข้อมูล
 
       // ตรวจสอบว่ามีฐานข้อมูลหรือไม่ // ถ้าไม่มี สร้างไดเรกทอรีใหม่
       if (!await Directory(dirname(path)).exists()) {
@@ -23,12 +25,12 @@ class DBProvider {
         // ฟังก์ชั่นที่จะทำงานก่อนที่จะสร้างฐานข้อมูล
         onCreate: (Database db, int version) async {
           String sql = "CREATE TABLE $TABLE_PRODUCT ("
-                "$COLUMN_ID INTEGER PRIMARY KEY, "
-                "$COLUMN_NAME TEXT, "
-                "$COLUMN_PRICE INTEGER"
-                "$COLUMN_STOCK REAL, "
-                ")";
-            await db.execute(sql); // สร้างฐานข้อมูล
+              "$COLUMN_ID INTEGER PRIMARY KEY, "
+              "$COLUMN_NAME TEXT, "
+              "$COLUMN_PRICE INTEGER"
+              "$COLUMN_STOCK REAL, "
+              ")";
+          await db.execute(sql); // สร้างฐานข้อมูล
         },
         // ฟังก์ชั่นที่จะทำงานก่อนที่จะอัพเดทฐานข้อมูล
         onUpgrade: (Database db, int oldVersion, int newVersion) {
@@ -45,13 +47,66 @@ class DBProvider {
     }
   }
 
-// if (await databaseExists(path)) {
-// print("Database exists");
-// } else {
-// print("Database does not exist");
-// final ByteData data = await rootBundle.load(join("assets", "MYPOS.db"));
-// final List<int> bytes =
-// data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-// await File(path).writeAsBytes(bytes);
-// }
+  // get all products
+  Future<List<Product>?> getAllProduct() async {
+    final List<Map<String, dynamic>> maps = await database.query(
+      TABLE_PRODUCT,
+      columns: [COLUMN_ID, COLUMN_NAME, COLUMN_PRICE, COLUMN_STOCK],
+    );
+
+    // List<Map> list = await database.rawQuery("SELECT * FROM $TABLE_PRODUCT");
+
+    if (maps.length > 0) {
+      return maps.map((map) => Product.fromMap(map)).toList();
+    }
+    return []; // ถ้าไม่มีข้อมูลจะได้ค่า null
+  }
+
+  // get all product by name
+  Future<Product?> getProduct(int id) async {
+    final List<Map<String, dynamic>> maps = await database.query(
+      TABLE_PRODUCT,
+      columns: [COLUMN_ID, COLUMN_NAME, COLUMN_PRICE, COLUMN_STOCK],
+      where: "$COLUMN_ID = ?", // คำสั่ง where
+      whereArgs: [id],
+    );
+
+    if (maps.length > 0) {
+      return Product.fromMap(maps.first);
+    }
+    return null; // ไม่พบข้อมูล
+  }
+
+  // insert product
+  Future<Product?> insertProduct(Product product) async {
+    // เพิ่มข้อมูลลงฐานข้อมูล
+    product.id = await database.insert(TABLE_PRODUCT, product.toMap());  // เพิ่มข้อมูลลงฐานข้อมูล
+    // product.id = await database.rawInsert("INSERT Into......");
+    return product;
+  }
+
+  // update product
+  Future<int> updateProduct(Product product) async {
+    return await database.update(
+      TABLE_PRODUCT, // ชื่อตาราง
+      product.toMap(), // ข้อมูลที่จะแก้ไข
+      where: "$COLUMN_ID = ?", // คำสั่ง where
+      whereArgs: [product.id],
+    );
+  }
+
+  // delete product
+  Future<int> deleteProduct(int id) async {
+    return await database.delete( // ลบข้อมูลจากตาราง
+      TABLE_PRODUCT, // ชื่อตาราง
+      where: "$COLUMN_ID = ?", // คำสั่ง where
+      whereArgs: [id],
+    );
+  }
+
+  // delete all product
+  Future<int> deleteAllProduct() async {
+    String sql = "DELETE FROM $TABLE_PRODUCT"; // ลบข้อมูลทั้งหมดจากตาราง
+    return await database.rawDelete(sql); 
+  }
 }
