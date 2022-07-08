@@ -68,7 +68,9 @@ class _MyHomePageState extends State<MyHomePage> {
         IconButton(
           icon: const Icon(Icons.delete),
           onPressed: () {
-            // todo
+            _refresh.currentState!.show(); // แสดง refresh indicator
+            dbProvider.deleteAllProduct(); // ลบข้อมูลทั้งหมด
+            setState(() {}); // อัพเดทหน้าจอ
           },
         ),
       ],
@@ -133,8 +135,31 @@ class _MyHomePageState extends State<MyHomePage> {
           // delete product // ลบข้อมูล
           trailing: IconButton(
             icon: const Icon(Icons.clear),
-            onPressed: () {
-              // delete product
+            onPressed: () async {
+              _refresh.currentState!.show(); // refresh indicator
+              dbProvider.deleteProduct(item.id!); // ลบข้อมูลจากฐานข้อมูล
+              await Future.delayed(
+                const Duration(seconds: 1), // delay 1 second
+              );
+              setState(() {}); // อัพเดทข้อมูลหน้าจอ
+              //Popup เรียกคืนข้อมูล
+              Scaffold.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text("Item deleted"),
+                  action: SnackBarAction(
+                    label: "UNDO",
+                    onPressed: () {
+                      _refresh.currentState!.show(); // รีเฟรชข้อมูล
+                      // เรียกคืนข้อมูล โดยส่งค่า id ของข้อมูลที่ลบ
+                      dbProvider.insertProduct(item).then(
+                            (value) {
+                          setState(() {}); // อัพเดทข้อมูล
+                        },
+                      );
+                    },
+                  ),
+                ), // แสดงข้อความว่าลบข้อมูลแล้ว
+              );
             },
           ),
         );
@@ -262,7 +287,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         _refresh.currentState!.show(); // รีเฟรชข้อมูล
                         Navigator.pop(context); // ปิดหน้าต่าง
                         dbProvider.updateProduct(product).then(
-                              (row) {
+                          (row) {
                             print(row.toString());
                             setState(() {}); // อัพเดทข้อมูล
                           },
