@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_final_fields
+// ignore_for_file: prefer_final_fields, deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:my_sqlite/db_provider.dart';
 
@@ -34,7 +34,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // key for the refresh indicator // สำหรับ refresh indicator
   var _refresh = GlobalKey<RefreshIndicatorState>();
 
-  DBProvider? dbProvider; // สำหรับเชื่อมต่อกับฐานข้อมูล
+  late DBProvider dbProvider; // สำหรับเชื่อมต่อกับฐานข้อมูล
 
   @override
   void initState() {
@@ -44,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    dbProvider?.closeDB(); // ปิดฐานข้อมูล
+    dbProvider.closeDB(); // ปิดฐานข้อมูล
     super.dispose();
   }
 
@@ -83,18 +83,17 @@ class _MyHomePageState extends State<MyHomePage> {
         await Future.delayed(
           const Duration(seconds: 1), // delay 1 second
         );
-        setState(() {}); // refresh
+        // setState(() {}); // refresh
       },
       child: FutureBuilder(
-        future: dbProvider!.getAllProduct(), // get all products
+        future: dbProvider.getAllProduct(), // get all products
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             // ถ้ามีข้อมูล
             List<Product> products =
                 snapshot.data as List<Product>; // ข้อมูลที่ได้จากฐานข้อมูล
-            if (products.length > 0) {
-              return _buildListView(
-                  products.reversed.toList()); // สร้าง list view
+            if (products.isNotEmpty) {
+              return _buildListView(products); // สร้าง list view
             } else {
               return const Center(
                 child: Text('No data'), // แสดงข้อความ No data
@@ -113,7 +112,7 @@ class _MyHomePageState extends State<MyHomePage> {
   _buildFloatingActionButton() => FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () {
-          // todo
+          createDialog(); // สร้างหน้าต่างสำหรับยืนยันการลบข้อมูล
         },
       );
 
@@ -126,7 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
           leading: IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              // edit product
+              editDialog(item); // สร้างหน้าต่างสำหรับยืนยันการลบข้อมูล
             },
           ),
           title: Text('${item.name} (${item.stock})'), // product name
@@ -146,7 +145,7 @@ class _MyHomePageState extends State<MyHomePage> {
       itemCount: product.length);
 
   _buildBody() => FutureBuilder(
-        future: dbProvider!.initDB(), // เปิดฐานข้อมูล
+        future: dbProvider.initDB(), // เปิดฐานข้อมูล
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             // ถ้ามีข้อมูล
@@ -158,5 +157,125 @@ class _MyHomePageState extends State<MyHomePage> {
                 : const CircularProgressIndicator(), // แสดง progress indicator
           );
         },
-      ); // จำนวนข้อมูล
+      );
+
+  // Insert product // เพิ่มข้อมูล
+  createDialog() {
+    var formKey = GlobalKey<FormState>(); // สำหรับการสร้าง form
+    Product product = Product(); // สร้างตัวแปร product เพื่อเอาไปใช้งานต่อ
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Form(
+            key: formKey, // สำหรับการสร้าง form
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // ขนาดคอลัมน์ของหน้าต่าง
+              children: [
+                TextFormField(
+                  decoration: const InputDecoration(hintText: 'Name'),
+                  onSaved: (value) {
+                    product.name = value; // ชื่อสินค้า
+                  },
+                ),
+                TextFormField(
+                  decoration: const InputDecoration(hintText: 'Price'),
+                  onSaved: (value) {
+                    product.price = double.parse(value!); // ชื่อสินค้า
+                  },
+                ),
+                TextFormField(
+                  decoration: const InputDecoration(hintText: 'Stock'),
+                  onSaved: (value) {
+                    product.stock = int.parse(value!); // ชื่อสินค้า
+                  },
+                ),
+                const SizedBox(height: 15),
+                SizedBox(
+                  width: double.infinity,
+                  child: FlatButton(
+                    child: const Text('Submit'),
+                    onPressed: () {
+                      if (formKey.currentState!.validate()) {
+                        formKey.currentState!.save(); // บันทึกข้อมูล
+                        _refresh.currentState!.show(); // รีเฟรชข้อมูล
+                        Navigator.pop(context); // ปิดหน้าต่าง
+                        dbProvider.insertProduct(product).then(
+                          (value) {
+                            print('product: $product');
+                            setState(() {}); // อัพเดทข้อมูล
+                          },
+                        ); // เพิ่มข้อมูล
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  } // จำนวนข้อมูล
+
+  // แก้ไขข้อมูล
+  editDialog(Product product) {
+    var formKey = GlobalKey<FormState>(); // สำหรับการสร้าง form
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Form(
+            key: formKey, // สำหรับการสร้าง form
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // ขนาดคอลัมน์ของหน้าต่าง
+              children: [
+                TextFormField(
+                  initialValue: product.name, // ชื่อสินค้า
+                  decoration: const InputDecoration(hintText: 'Name'),
+                  onSaved: (value) {
+                    product.name = value; // ชื่อสินค้า
+                  },
+                ),
+                TextFormField(
+                  initialValue: product.price.toString(), // ชื่อสินค้า
+                  decoration: const InputDecoration(hintText: 'Price'),
+                  onSaved: (value) {
+                    product.price = double.parse(value!); // ชื่อสินค้า
+                  },
+                ),
+                TextFormField(
+                  initialValue: product.stock.toString(), // ชื่อสินค้า
+                  decoration: const InputDecoration(hintText: 'Stock'),
+                  onSaved: (value) {
+                    product.stock = int.parse(value!); // ชื่อสินค้า
+                  },
+                ),
+                const SizedBox(height: 15),
+                SizedBox(
+                  width: double.infinity,
+                  child: FlatButton(
+                    child: const Text('Submit'),
+                    onPressed: () {
+                      if (formKey.currentState!.validate()) {
+                        formKey.currentState!.save(); // บันทึกข้อมูล
+                        _refresh.currentState!.show(); // รีเฟรชข้อมูล
+                        Navigator.pop(context); // ปิดหน้าต่าง
+                        dbProvider.updateProduct(product).then(
+                              (row) {
+                            print(row.toString());
+                            setState(() {}); // อัพเดทข้อมูล
+                          },
+                        ); // เพิ่มข้อมูล
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  } // จำนวนข้อมูล
 }

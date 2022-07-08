@@ -25,7 +25,7 @@ class DBProvider {
         // ฟังก์ชั่นที่จะทำงานก่อนที่จะสร้างฐานข้อมูล
         onCreate: (Database db, int version) async {
           // String sql = "CREATE TABLE $TABLE_PRODUCT (""$COLUMN_ID INTEGER PRIMARY KEY,""$COLUMN_NAME TEXT,""$COLUMN_PRICE INTEGER,""$COLUMN_STOCK REAL,"")";
-          await db.execute('CREATE TABLE $TABLE_PRODUCT ($COLUMN_ID INTEGER PRIMARY KEY, $COLUMN_NAME TEXT, $COLUMN_PRICE INTEGER, $COLUMN_STOCK REAL)');
+          await db.execute('CREATE TABLE $TABLE_PRODUCT ($COLUMN_ID INTEGER PRIMARY KEY, $COLUMN_NAME TEXT, $COLUMN_PRICE REAL, $COLUMN_STOCK INTEGER)');
            // สร้างฐานข้อมูล
         },
         // ฟังก์ชั่นที่จะทำงานก่อนที่จะอัพเดทฐานข้อมูล
@@ -49,16 +49,18 @@ class DBProvider {
 
   // get all products
   Future<List<Product>> getAllProduct() async {
-    final List<Map<String, dynamic>> maps = await database.query(
+    print('getAllProduct');
+    final List maps = await database.query(
       TABLE_PRODUCT,
       columns: [COLUMN_ID, COLUMN_NAME, COLUMN_PRICE, COLUMN_STOCK],
     );
 
     // List<Map> list = await database.rawQuery("SELECT * FROM $TABLE_PRODUCT");
 
-    if (maps.length > 0) {
-      return maps.map((map) => Product.fromMap(map)).toList();
+    if (maps.isNotEmpty) {
+      return maps.map((p) => Product.fromMap(p)).toList();
     }
+
     return []; // ถ้าไม่มีข้อมูลจะได้ค่า null
   }
 
@@ -71,7 +73,7 @@ class DBProvider {
       whereArgs: [id],
     );
 
-    if (maps.length > 0) {
+    if (maps.isNotEmpty) {
       return Product.fromMap(maps.first);
     }
     return null; // ไม่พบข้อมูล
